@@ -5,7 +5,7 @@ from selenium.webdriver.common.by import By
 from selenium import webdriver
 import pickle
 
-url = 'https://www.wikiwand.com/en/The_Flash_(2014_TV_series)'
+url = 'https://www.wikiwand.com/en/Flash_(comics)'
 parent_url = 'https://www.wikiwand.com'
 
 '''wd = webdriver.PhantomJS()
@@ -56,7 +56,7 @@ def get_relatives(url):
     wd = webdriver.PhantomJS()
     wd.get(url)
 
-    WebDriverWait(wd, 600).until(
+    WebDriverWait(wd, 10).until(
         EC.visibility_of_element_located((By.CLASS_NAME, "read_more_link")))
 
     html_page = wd.page_source
@@ -89,14 +89,18 @@ count = 1
 urls = []
 while count < 15:
     for i, el in enumerate(url_list):
-        title, title_list, rel_url_list = get_relatives(el)
-        graph[title] = title_list
-        urls.extend(rel_url_list)
-        print(graph)
-        filename = 'graph.pkl'
-        file = open(filename, 'wb')
-        pickle.dump(graph, file)
-        file.close()
+        try:
+            title, title_list, rel_url_list = get_relatives(el)
+        except:
+            continue
+        if title not in graph.keys():
+            graph[title] = title_list
+            urls.extend(rel_url_list)
+            print(graph)
+            filename = 'graph.pkl'
+            file = open(filename, 'wb')
+            pickle.dump(graph, file)
+            file.close()
     url_list = urls
     urls = []
     count += 1
