@@ -32,6 +32,8 @@ def generate_graph(url, graph, l=1, max_nodes=50):
             del links[i]
         if str(el.get('href')).strip().startswith('/wiki/List_of'):
             del links[i]
+        if 'File:' str(el.get('href')).strip()
+            del links[i]
         if str(el.get('title')).strip().endswith('(disambiguation)'):
             del links[i]
         if str(el.get('title')).strip().startswith('Edit section'):
@@ -64,6 +66,8 @@ def generate_graph(url, graph, l=1, max_nodes=50):
         if href.startswith('https://en.wikipedia.org/wiki/List_of'):
             continue
         if title.endswith('(disambiguation)'):
+            continue
+        if 'File:' in href:
             continue
         if title.startswith('Edit section'):
             continue
