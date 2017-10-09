@@ -7,7 +7,7 @@ import json
 from collections import defaultdict
 
 main_url = 'https://en.wikipedia.org'
-url = 'https://en.wikipedia.org/wiki/Flash_(Barry_Allen)'
+url = 'https://en.wikipedia.org/wiki/Earth'
 
 def generate_graph(url, graph, l=1, max_nodes=50):
     page = requests.get(url)
@@ -126,7 +126,6 @@ def recursive_graph(url, depth=2, l=1, max_nodes=50):
     G = nx.MultiDiGraph()
     G = generate_graph(url, G, l=l, max_nodes=max_nodes)
     print(0, 0, len(G.nodes()), len(G.edges()))
-    #print(G.nodes())
     count = 1
     while count <= depth:
         for i, el in enumerate(G.nodes(data=True)):
@@ -135,11 +134,10 @@ def recursive_graph(url, depth=2, l=1, max_nodes=50):
             except:
                 continue
             print(count-1, i,len(G.nodes()), len(G.edges()))
-            #print(G.nodes())
         count += 1
     return G
 
 file = open('output.json', 'w')
-G = recursive_graph(url, max_nodes=20, depth=3)
+G = recursive_graph(url, max_nodes=5, depth=5)
 file.write(json.dumps(json_graph.node_link_data(G)))
 file.close()
