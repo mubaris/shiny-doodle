@@ -32,7 +32,7 @@ def generate_graph(url, graph, l=1, max_nodes=50):
             del links[i]
         if str(el.get('href')).strip().startswith('/wiki/List_of'):
             del links[i]
-        if 'File:' str(el.get('href')).strip()
+        if 'File:' in str(el.get('href')).strip():
             del links[i]
         if str(el.get('title')).strip().endswith('(disambiguation)'):
             del links[i]
@@ -125,7 +125,7 @@ for i, el in enumerate(G.nodes(data=True)):
 def recursive_graph(url, depth=2, l=1, max_nodes=50):
     G = nx.MultiDiGraph()
     G = generate_graph(url, G, l=l, max_nodes=max_nodes)
-    print(0, 0, len(G.nodes()))
+    print(0, 0, len(G.nodes()), len(G.edges()))
     #print(G.nodes())
     count = 1
     while count <= depth:
@@ -134,11 +134,12 @@ def recursive_graph(url, depth=2, l=1, max_nodes=50):
                 G = generate_graph(el[1]['url'], G, l=l, max_nodes=max_nodes)
             except:
                 continue
-            print(count-1, i,len(G.nodes()))
+            print(count-1, i,len(G.nodes()), len(G.edges()))
             #print(G.nodes())
         count += 1
     return G
 
-G = recursive_graph(url, max_nodes=-1)
-with open('output.json', 'w') as out:
-    out.write(json.dumps(json_graph.node_link_data(G)))
+file = open('output.json', 'w')
+G = recursive_graph(url, max_nodes=20, depth=3)
+file.write(json.dumps(json_graph.node_link_data(G)))
+file.close()
