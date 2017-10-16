@@ -2,14 +2,16 @@ import requests
 from bs4 import BeautifulSoup
 import networkx as nx
 from networkx.readwrite import json_graph
+from py2neo import Graph, Node, Relationship, NodeSelector
 import math
 import json
 from collections import defaultdict
+from secret import password
 
 main_url = 'https://en.wikipedia.org'
-url = 'https://en.wikipedia.org/wiki/Earth'
+url = 'https://en.wikipedia.org/wiki/Flash_(comics)'
 
-def generate_graph(url, graph, l=1, max_nodes=50):
+def generate_graph(G, url, l=1, max_nodes=50):
     page = requests.get(url)
     soup = BeautifulSoup(page.text, 'html.parser')
     header = str(soup.find('h1', {'id': 'firstHeading', 'class': 'firstHeading'}).text).strip()
@@ -20,34 +22,37 @@ def generate_graph(url, graph, l=1, max_nodes=50):
     content = soup.find('div', {'class': 'mw-parser-output'})
     links = content.findAll('a', href=True, title=True)
     for i, el in enumerate(links):
-        if not str(el.get('href')).strip().startswith('/wiki/'):
-            del links[i]
-        if str(el.get('title')).strip().startswith('Category:'):
-            del links[i]
-        if str(el.get('title')).strip().startswith('Help:'):
-            del links[i]
-        if str(el.get('title')).strip().startswith('Wikipedia:'):
-            del links[i]
-        if str(el.get('title')).strip().startswith('Special:'):
-            del links[i]
-        if str(el.get('href')).strip().startswith('/wiki/List_of'):
-            del links[i]
-        if 'File:' in str(el.get('href')).strip():
-            del links[i]
-        if str(el.get('title')).strip().endswith('(disambiguation)'):
-            del links[i]
-        if str(el.get('title')).strip().startswith('Edit section'):
-            del links[i]
-        if str(el.get('title')).strip().startswith('Portal:'):
-            del links[i]
-        if str(el.get('title')).strip().startswith('Template:'):
-            del links[i]
-        if str(el.get('title')).strip().startswith('Enlarge'):
-            del links[i]
-        if str(el.get('title')).strip().startswith('List of'):
-            del links[i]
-        if 'mw-redirect' in str(el.get('class')).strip():
-            del links[i]
+        try:
+            if not str(el.get('href')).strip().startswith('/wiki/'):
+                del links[i]
+            if str(el.get('title')).strip().startswith('Category:'):
+                del links[i]
+            if str(el.get('title')).strip().startswith('Help:'):
+                del links[i]
+            if str(el.get('title')).strip().startswith('Wikipedia:'):
+                del links[i]
+            if str(el.get('title')).strip().startswith('Special:'):
+                del links[i]
+            if str(el.get('href')).strip().startswith('/wiki/List_of'):
+                del links[i]
+            if 'File:' in str(el.get('href')).strip():
+                del links[i]
+            if str(el.get('title')).strip().endswith('(disambiguation)'):
+                del links[i]
+            if str(el.get('title')).strip().startswith('Edit section'):
+                del links[i]
+            if str(el.get('title')).strip().startswith('Portal:'):
+                del links[i]
+            if str(el.get('title')).strip().startswith('Template:'):
+                del links[i]
+            if str(el.get('title')).strip().startswith('Enlarge'):
+                del links[i]
+            if str(el.get('title')).strip().startswith('List of'):
+                del links[i]
+            if 'mw-redirect' in str(el.get('class')).strip():
+                del links[i]
+        except:
+            continue
 
     pairs = []
     for i, el in enumerate(links):
@@ -90,54 +95,60 @@ def generate_graph(url, graph, l=1, max_nodes=50):
     for pair in pairs:
         fq[pair] += 1
     value_dict = dict(fq)
-    if header not in graph.nodes():
-        graph.add_node(header, url=url)
+    '''if header not in graph.nodes():
+        graph.add_node(header, url=url)'''
+    '''selector = NodeSelector(G)
+    selected = list(selector.select("Page", name=header, url=url))
+    if selected:
+        root_node = selected[0]
+    else:
+        root_node = Node("Page", name=header, url=url)'''
+    selector = NodeSelector(G)
+    selected = list(selector.select("Page", name=header, url=url))
+    if selected:
+        root_node = selected[0]
+    else:
+        root_node = Node("Page", name=header, url=url)
     sorted_values = sorted(value_dict, key=lambda x:value_dict[x], reverse=True)
     if max_nodes == -1:
         max_nodes = math.inf
     for i, el in enumerate(sorted_values):
-        if i < max_nodes and value_dict[el] >= l and (header, el[0]) not in graph.edges():
-            graph.add_edge(header, el[0], weight=value_dict[el])
-            graph.node[el[0]]['url'] = el[1]
-    return graph
-    
+        if i < max_nodes and value_dict[el] >= l:
+            # and (header, el[0]) not in graph.edges()
+            '''graph.add_edge(header, el[0], weight=value_dict[el])
+            graph.node[el[0]]['url'] = el[1]'''
+            selector = NodeSelector(G)
+            selected = list(selector.select("Page", name=el[0], url=el[1]))
+            if selected:
+                child_node = selected[0]
+            else:
+                child_node = Node("Page", name=el[0], url=el[1])
+            connection = Relationship(root_node, "CONNECTS_TO", child_node, weight=value_dict[el])
+            print(connection)
+            if G.exists(connection):
+                continue
+            G.create(connection)
+    #return graph
 
-'''def print_sorted(value_dict, l=1):
-    sorted_values = sorted(value_dict, key=lambda x:value_dict[x])
-    for k in sorted_values:
-        if value_dict[k] >= l:
-            print("{}: {}".format(k, value_dict[k]))
-
-#value_dict = generate_graph(url)
-#print_sorted(value_dict, l=1)
-print(generate_graph(url, {}))'''
-
-'''G = nx.MultiDiGraph()
-G = generate_graph(url, G)
-print(len(G.nodes()))
-print(G.nodes())
-for i, el in enumerate(G.nodes(data=True)):
-    if i != 0:
-        G = generate_graph(el[1]['url'], G)
-        print(len(G.nodes()))
-        print(G.nodes())'''
-
-def recursive_graph(url, depth=2, l=1, max_nodes=50):
-    G = nx.MultiDiGraph()
-    G = generate_graph(url, G, l=l, max_nodes=max_nodes)
-    print(0, 0, len(G.nodes()), len(G.edges()))
+def recursive_graph(G, url, depth=2, l=1, max_nodes=50):
+    '''G = nx.MultiDiGraph()
+    G = generate_graph(url, G, l=l, max_nodes=max_nodes)'''
+    generate_graph(G, url, l=l, max_nodes=max_nodes)
+    selector = NodeSelector(G)
+    selected = list(selector.select("Page"))
+    print(0, 0, len(selected))
     count = 1
     while count <= depth:
-        for i, el in enumerate(G.nodes(data=True)):
-            try:
-                G = generate_graph(el[1]['url'], G, l=l, max_nodes=max_nodes)
-            except:
-                continue
-            print(count-1, i,len(G.nodes()), len(G.edges()))
+        selected = list(selector.select("Page"))
+        #for i, el in enumerate(G.nodes(data=True)):
+        for i, el in enumerate(selected):
+            url = el.properties["url"]
+            generate_graph(G, url, l=l, max_nodes=max_nodes)
+            selected = list(selector.select("Page"))
+            print(count-1, i, len(selected))
         count += 1
     return G
 
-file = open('output.json', 'w')
-G = recursive_graph(url, max_nodes=5, depth=5)
-file.write(json.dumps(json_graph.node_link_data(G)))
-file.close()
+G = Graph(password=password)
+G.run('CREATE CONSTRAINT ON (p:Page) ASSERT p.url IS UNIQUE')
+recursive_graph(G, url, max_nodes=10, depth=5)
