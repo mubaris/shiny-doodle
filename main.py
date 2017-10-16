@@ -1,7 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
-import networkx as nx
-from networkx.readwrite import json_graph
+#import networkx as nx
+#from networkx.readwrite import json_graph
 from py2neo import Graph, Node, Relationship, NodeSelector
 import math
 import json
