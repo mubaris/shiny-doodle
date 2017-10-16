@@ -65,5 +65,5 @@ while True:
                 continue
             f = open('links.txt', 'a')
             print(href, file=f)
-    f.close()
+            f.close()
 f.close()
