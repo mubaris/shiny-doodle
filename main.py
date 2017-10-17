@@ -1,15 +1,14 @@
 import math
 from collections import defaultdict
-import urllib.parse
-import requests
+from urllib.request import urlopen
 from bs4 import BeautifulSoup
 from py2neo import Graph, Node, Relationship, NodeSelector
 from secret import password
 
 
 def generate_graph(G, url, l=1, max_nodes=50):
-    page = requests.get(url)
-    soup = BeautifulSoup(page.text, 'html.parser')
+    page = urlopen(url)
+    soup = BeautifulSoup(page, 'html.parser')
     header = str(soup.find('h1', {'id': 'firstHeading', 'class': 'firstHeading'}).text).strip()
     try:
         soup.find('div', {'class': 'reflist'}).decompose()
@@ -118,29 +117,31 @@ def generate_graph(G, url, l=1, max_nodes=50):
 
 G = Graph(password=password)
 G.run('CREATE CONSTRAINT ON (p:Page) ASSERT p.url IS UNIQUE')
+G.run('CREATE CONSTRAINT ON (p:Page) ASSERT p.name IS UNIQUE')
 
 main_url = 'https://en.wikipedia.org'
-wiki_url = 'https://en.wikipedia.org/wiki/'
 
 count = 0
 total = 5348758
 
 with open('links.txt') as f:
-    for line in f:
+    for url in f:
         count += 1
         percentage = 100 * count / total
         progress = open('progress.log', 'a')
         failure = open('failure.log', 'a')
         failed_links = open('failed_links.txt', 'a')
         visited_links = open('visited_links.txt', 'a')
-        url = wiki_url + urllib.parse.quote(line[30:])
         try:
             generate_graph(G, url, l=1, max_nodes=-1)
-            progress.write("Run number - {}, Percentage - {}%, Page - {}".format(count, percentage, url))
-            visited_links.write(line)
-        except:
-            failure.write("Run number - {}, Percentage - {}%, Page - {}".format(count, percentage, url))
+            progress.write("Run number - {}, Percentage - {}%, Page - {}\n".format(count, percentage, url))
+            visited_links.write(url)
+            visited_links.write("\n")
+        except Exception as e:
+            failure.write("Run number - {}, Percentage - {}%, Page - {}\n".format(count, percentage, url))
             failed_links.write(url)
+            failed_links.write("\n")
+            print(e)
         progress.close()
         failure.close()
         failed_links.close()
