@@ -1,15 +1,12 @@
+import math
+from collections import defaultdict
+import logging
 import requests
 from bs4 import BeautifulSoup
-#import networkx as nx
-#from networkx.readwrite import json_graph
 from py2neo import Graph, Node, Relationship, NodeSelector
-import math
-import json
-from collections import defaultdict
 from secret import password
 
 main_url = 'https://en.wikipedia.org'
-url = 'https://en.wikipedia.org/wiki/Flash_(comics)'
 
 def generate_graph(G, url, l=1, max_nodes=50):
     page = requests.get(url)
@@ -95,14 +92,6 @@ def generate_graph(G, url, l=1, max_nodes=50):
     for pair in pairs:
         fq[pair] += 1
     value_dict = dict(fq)
-    '''if header not in graph.nodes():
-        graph.add_node(header, url=url)'''
-    '''selector = NodeSelector(G)
-    selected = list(selector.select("Page", name=header, url=url))
-    if selected:
-        root_node = selected[0]
-    else:
-        root_node = Node("Page", name=header, url=url)'''
     selector = NodeSelector(G)
     selected = list(selector.select("Page", name=header, url=url))
     if selected:
@@ -114,9 +103,6 @@ def generate_graph(G, url, l=1, max_nodes=50):
         max_nodes = math.inf
     for i, el in enumerate(sorted_values):
         if i < max_nodes and value_dict[el] >= l:
-            # and (header, el[0]) not in graph.edges()
-            '''graph.add_edge(header, el[0], weight=value_dict[el])
-            graph.node[el[0]]['url'] = el[1]'''
             selector = NodeSelector(G)
             selected = list(selector.select("Page", name=el[0], url=el[1]))
             if selected:
@@ -128,27 +114,21 @@ def generate_graph(G, url, l=1, max_nodes=50):
             if G.exists(connection):
                 continue
             G.create(connection)
-    #return graph
 
-def recursive_graph(G, url, depth=2, l=1, max_nodes=50):
-    '''G = nx.MultiDiGraph()
-    G = generate_graph(url, G, l=l, max_nodes=max_nodes)'''
-    generate_graph(G, url, l=l, max_nodes=max_nodes)
-    selector = NodeSelector(G)
-    selected = list(selector.select("Page"))
-    print(0, 0, len(selected))
-    count = 1
-    while count <= depth:
-        selected = list(selector.select("Page"))
-        #for i, el in enumerate(G.nodes(data=True)):
-        for i, el in enumerate(selected):
-            url = el.properties["url"]
-            generate_graph(G, url, l=l, max_nodes=max_nodes)
-            selected = list(selector.select("Page"))
-            print(count-1, i, len(selected))
-        count += 1
-    return G
+
+
+logging.basicConfig(level=logging.INFO, filename="progress.log")
 
 G = Graph(password=password)
 G.run('CREATE CONSTRAINT ON (p:Page) ASSERT p.url IS UNIQUE')
-recursive_graph(G, url, max_nodes=10, depth=5)
+
+count = 0
+total = 5348758
+
+with open('links.txt') as f:
+    for url in f:
+        count += 1
+        percentage = 100 * count / total
+        generate_graph(G, url, l=1, max_nodes=-1)
+        logging.info("Run number - {}, Percentage - {}%, Page - {}".format(count, percentage, url))
+
