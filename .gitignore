@@ -3,3 +3,4 @@ __pycache__
 links.txt
 progress.log
 failure.log
+failed_links.txt

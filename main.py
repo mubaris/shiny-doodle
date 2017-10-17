@@ -1,11 +1,11 @@
 import math
 from collections import defaultdict
+import urllib.parse
 import requests
 from bs4 import BeautifulSoup
 from py2neo import Graph, Node, Relationship, NodeSelector
 from secret import password
 
-main_url = 'https://en.wikipedia.org'
 
 def generate_graph(G, url, l=1, max_nodes=50):
     page = requests.get(url)
@@ -119,20 +119,26 @@ def generate_graph(G, url, l=1, max_nodes=50):
 G = Graph(password=password)
 G.run('CREATE CONSTRAINT ON (p:Page) ASSERT p.url IS UNIQUE')
 
+main_url = 'https://en.wikipedia.org'
+wiki_url = 'https://en.wikipedia.org/wiki/'
+
 count = 0
 total = 5348758
 
 with open('links.txt') as f:
-    for url in f:
+    for line in f:
         count += 1
         percentage = 100 * count / total
         progress = open('progress.log', 'a')
         failure = open('failure.log', 'a')
-        url = 'https://en.wikipedia.org/wiki/Max_Mercury'
+        failed_links = open('failed_links.txt', 'a')
+        url = wiki_url + urllib.parse.quote(line[30:])
         try:
             generate_graph(G, url, l=1, max_nodes=-1)
             progress.write("Run number - {}, Percentage - {}%, Page - {}".format(count, percentage, url))
         except:
             failure.write("Run number - {}, Percentage - {}%, Page - {}".format(count, percentage, url))
+            failed_links.write(url)
         progress.close()
         failure.close()
+        failed_links.close()
