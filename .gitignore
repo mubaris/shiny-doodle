@@ -4,3 +4,4 @@ links.txt
 progress.log
 failure.log
 failed_links.txt
+visited_links.txt

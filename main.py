@@ -132,10 +132,12 @@ with open('links.txt') as f:
         progress = open('progress.log', 'a')
         failure = open('failure.log', 'a')
         failed_links = open('failed_links.txt', 'a')
+        visited_links = open('visited_links.txt', 'a')
         url = wiki_url + urllib.parse.quote(line[30:])
         try:
             generate_graph(G, url, l=1, max_nodes=-1)
             progress.write("Run number - {}, Percentage - {}%, Page - {}".format(count, percentage, url))
+            visited_links.write(line)
         except:
             failure.write("Run number - {}, Percentage - {}%, Page - {}".format(count, percentage, url))
             failed_links.write(url)
