@@ -1,6 +1,5 @@
 import math
 from collections import defaultdict
-import logging
 import requests
 from bs4 import BeautifulSoup
 from py2neo import Graph, Node, Relationship, NodeSelector
@@ -110,14 +109,12 @@ def generate_graph(G, url, l=1, max_nodes=50):
             else:
                 child_node = Node("Page", name=el[0], url=el[1])
             connection = Relationship(root_node, "CONNECTS_TO", child_node, weight=value_dict[el])
-            print(connection)
             if G.exists(connection):
                 continue
             G.create(connection)
 
 
 
-logging.basicConfig(level=logging.INFO, filename="progress.log")
 
 G = Graph(password=password)
 G.run('CREATE CONSTRAINT ON (p:Page) ASSERT p.url IS UNIQUE')
@@ -129,6 +126,13 @@ with open('links.txt') as f:
     for url in f:
         count += 1
         percentage = 100 * count / total
-        generate_graph(G, url, l=1, max_nodes=-1)
-        logging.info("Run number - {}, Percentage - {}%, Page - {}".format(count, percentage, url))
-
+        progress = open('progress.log', 'a')
+        failure = open('failure.log', 'a')
+        url = 'https://en.wikipedia.org/wiki/Max_Mercury'
+        try:
+            generate_graph(G, url, l=1, max_nodes=-1)
+            progress.write("Run number - {}, Percentage - {}%, Page - {}".format(count, percentage, url))
+        except:
+            failure.write("Run number - {}, Percentage - {}%, Page - {}".format(count, percentage, url))
+        progress.close()
+        failure.close()
