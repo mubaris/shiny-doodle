@@ -90,8 +90,6 @@ def generate_graph(G, url, l=1, max_nodes=50):
     for pair in pairs:
         fq[pair] += 1
     value_dict = dict(fq)
-    # selector = NodeSelector(G)
-    # selected = list(selector.select("Page", name=header, url=url))
     exists_root = G.find_one("Page", "name", header)
     if exists_root:
         root_node = exists_root
@@ -102,15 +100,11 @@ def generate_graph(G, url, l=1, max_nodes=50):
         max_nodes = math.inf
     for i, el in enumerate(sorted_values):
         if i < max_nodes and value_dict[el] >= l:
-            # selector = NodeSelector(G)
-            # selected = list(selector.select("Page", name=el[0], url=el[1]))
             exists_child = G.find_one("Page", "name", el[0])
             if exists_child:
                 child_node = exists_child
             else:
                 child_node = Node("Page", name=el[0], url=el[1])
-            # G.merge(root_node)
-            # G.merge(child_node)
             connection = Relationship(root_node, "CONNECTS_TO", child_node, weight=value_dict[el])
             if G.exists(connection):
                 continue
