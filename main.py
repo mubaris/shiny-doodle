@@ -90,10 +90,11 @@ def generate_graph(G, url, l=1, max_nodes=50):
     for pair in pairs:
         fq[pair] += 1
     value_dict = dict(fq)
-    selector = NodeSelector(G)
-    selected = list(selector.select("Page", name=header, url=url))
-    if selected:
-        root_node = selected[0]
+    # selector = NodeSelector(G)
+    # selected = list(selector.select("Page", name=header, url=url))
+    exists_root = G.find_one("Page", "name", header)
+    if exists_root:
+        root_node = exists_root
     else:
         root_node = Node("Page", name=header, url=url)
     sorted_values = sorted(value_dict, key=lambda x:value_dict[x], reverse=True)
@@ -101,16 +102,22 @@ def generate_graph(G, url, l=1, max_nodes=50):
         max_nodes = math.inf
     for i, el in enumerate(sorted_values):
         if i < max_nodes and value_dict[el] >= l:
-            selector = NodeSelector(G)
-            selected = list(selector.select("Page", name=el[0], url=el[1]))
-            if selected:
-                child_node = selected[0]
+            # selector = NodeSelector(G)
+            # selected = list(selector.select("Page", name=el[0], url=el[1]))
+            exists_child = G.find_one("Page", "name", el[0])
+            if exists_child:
+                child_node = exists_child
             else:
                 child_node = Node("Page", name=el[0], url=el[1])
+            # G.merge(root_node)
+            # G.merge(child_node)
             connection = Relationship(root_node, "CONNECTS_TO", child_node, weight=value_dict[el])
             if G.exists(connection):
                 continue
-            G.create(connection)
+            try:
+                G.create(connection)
+            except Exception as e:
+                raise Exception(str(connection) + " " + str(e))
 
 
 
@@ -125,7 +132,8 @@ count = 0
 total = 5348758
 
 with open('links.txt') as f:
-    for url in f:
+    for line in f:
+        url = line.strip()
         count += 1
         percentage = 100 * count / total
         progress = open('progress.log', 'a')
@@ -134,14 +142,12 @@ with open('links.txt') as f:
         visited_links = open('visited_links.txt', 'a')
         try:
             generate_graph(G, url, l=1, max_nodes=-1)
-            progress.write("Run number - {}, Percentage - {}%, Page - {}\n".format(count, percentage, url))
-            visited_links.write(url)
-            visited_links.write("\n")
+            print("Run number - {}, Percentage - {}%, Page - {}\n".format(count, percentage, url), file=progress)
+            print(url, file=visited_links)
         except Exception as e:
-            failure.write("Run number - {}, Percentage - {}%, Page - {}\n".format(count, percentage, url))
-            failed_links.write(url)
-            failed_links.write("\n")
-            print(e)
+            print("Run number - {}, Percentage - {}%, Page - {}\n".format(count, percentage, url), file=failure)
+            print(url, file=failed_links)
+            print("ERROR - ", e)
         progress.close()
         failure.close()
         failed_links.close()
